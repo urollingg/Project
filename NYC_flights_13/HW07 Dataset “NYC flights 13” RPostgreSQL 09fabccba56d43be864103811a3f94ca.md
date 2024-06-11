@@ -3,10 +3,7 @@
 Date: March 20, 2024
 Status: Done
 
-# Homework NYC flights 13
-
 ask 6 questions about this database
-
 ```r
 library(nycflights13)
 library(tidyverse)   # dplyr
@@ -199,8 +196,3 @@ flights %>%
 
 5 อันดับ สายการบินที่บินไป Chicago Ohare Intl ในช่วง มกราคม - มิถุนายน 2013 มากที่สุด ได้แก่ United Air Lines, American Airlines, Envoy Air, Endeavor Air และ JetBlue Airways
 
-## close connection
-
-```r
-dbDisconnect(con)
-```
