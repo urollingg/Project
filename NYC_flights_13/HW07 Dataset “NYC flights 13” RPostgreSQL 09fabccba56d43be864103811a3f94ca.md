@@ -1,4 +1,4 @@
-# HW07 Dataset “NYC flights 13” / RPostgreSQL
+# “NYC flights 13 Dataset”
 
 Date: March 20, 2024
 Status: Done
@@ -198,94 +198,6 @@ flights %>%
 ```
 
 5 อันดับ สายการบินที่บินไป Chicago Ohare Intl ในช่วง มกราคม - มิถุนายน 2013 มากที่สุด ได้แก่ United Air Lines, American Airlines, Envoy Air, Endeavor Air และ JetBlue Airways
-
-## HW02 - restaurant pizza SQL
-
-### create 3-5 dataframe => write table into sever
-
-```r
-install.packages(RPostgreSQL)
-library(RPostgreSQL)
-library(tidyverse)
-```
-
-## list tables
-
-```r
-dbListTables(con)
-```
-
-```r
-customers <- tribble(
-~customer_id, ~firstname, ~lastname, ~customer_phone,
-01, "Astrid", "Gruber", "081-2039842",
-02, "Daan", "Peeters", "083-3110984",
-03, "Kara", "Nielsen", "081-2334123",
-04, "Eduardo", "Martins", "082-2455522",
-05, "Alexandre", "Rocha", "083-2414245",
-06, "Roberto", "Almeida", "081-6687949",
-07, "Fernanda", "Ramos", "092-0998047",
-08, "Mark", "Philips", "086-7776443",
-09, "Jennifer", "Peterson", "091-3498765",
-10, "Frank", "Harris", "081-5652188")
-```
-
-```r
-orders <- tribble(~order_id, ~orderdate, ~customer_id, ~menu_id, ~quantities,
-01, "2023-11-5", 05, 04, 1,
-02, "2023-11-5", 05, 02, 1,
-03, "2023-11-3", 03, 04, 2,
-04, "2023-11-1", 09, 01, 1,
-05, "2023-10-31", 02, 02, 1,
-06, "2023-10-29", 03, 04, 2,
-07, "2023-10-31", 02, 04, 1,
-08, "2023-10-3", 07, 02, 1,
-09, "2023-11-4", 08, 01, 1,
-10, "2023-11-5", 10, 04, 3)
-```
-
-```r
-menus_pizza <- tribble(~menu_id, ~menu_name, ~price,
-01, "Seafood Island", 299,
-02, "Ham & Cheese", 199,
-03, "Meat Lover", 399,
-04, "Hawaiian", 259)
-```
-
-## create connection
-
-```r
-con <- dbConnect(
-				PostgreSQL(),
-				host = 	"[floppy.db.elephantsql.com](http://floppy.db.elephantsql.com/)",
-				dbname = "bfyajjvu",
-				user = "bfyajjvu",
-				password = "3pCZFDzkCpo17jVk0ozIQyaaUpIUOv6G",
-				port = 5432
-				)
-```
-
-## write new table to database
-
-```r
-dbWriteTable(con, "customers", customers)
-dbWriteTable(con, "orders", orders)
-dbWriteTable(con, "menus_pizza", menus_pizza)
-```
-
-## get data from database tables
-
-```r
-dbGetQuery(con, "select * from customers")
-dbGetQuery(con, "select * from orders")
-dbGetQuery(con, "select * from menus_pizza")
-```
-
-```r
-dbGetQuery(con, "select customer_id, firstname, lastname
-from customers
-where customer_id = 10")
-```
 
 ## close connection
 
