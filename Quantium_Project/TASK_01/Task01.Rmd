@@ -1,0 +1,383 @@
+---
+title: "Quantium Virtual Internship - Retail Strategy and Analytics - Task 1"
+author: "Sarita"
+date: "2024-05-13"
+mainfont: Roboto
+monofont: Consolas
+output:
+ pdf_document:
+ df_print: default
+ highlight: tango
+ keep_tex: yes
+ latex_engine: xelatex
+header-includes:
+ \usepackage{fvextra}
+  \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\{\}}
+---
+
+```{r setup, include=FALSE}
+# set options for R markdown knitting
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(linewidth=80)
+```
+
+```{r knitr line wrap setup, include=FALSE}
+# set up line wrapping in MD knit output
+library(knitr)
+hook_output = knit_hooks$get("output")
+knit_hooks$set(output = function(x, options)
+{
+ # this hook is used only when the linewidth option is not NULL
+ if (!is.null(n <- options$linewidth))
+ {
+ x = knitr:::split_lines(x)
+ # any lines wider than n should be wrapped
+ if (any(nchar(x) > n))
+ x = strwrap(x, width = n)
+ x = paste(x, collapse = "\n")
+ }
+ hook_output(x, options)
+})
+```
+
+# Load required libraries
+```{r}
+library(data.table)
+library(ggplot2)
+library(ggmosaic)
+library(readr)
+library(tidyverse)
+```
+
+# import csv 
+```{r}
+filePath <- ""
+transactionData <- fread(paste0(filePath,"QVI_transaction_data.csv"))
+customerData <- fread(paste0(filePath,"QVI_purchase_behaviour.csv"))
+```
+>>>>>
+```{r}
+head(transactionData)
+head(customerData)
+```
+
+# Exploratory data analysis
+## TransactionData
+```{r}
+str(transactionData)
+```
+
+```{r}
+transactionData %>%
+  summarise_all(class) %>%
+  gather(variale, class)
+```
+
+## CustomerData
+```{r}
+str(customerData)
+customerData %>%
+  summarise_all(class) %>%
+  gather(variable, class)
+```
+
+# Examining TransactionData data
+From exploring the dataset I found that the date column is in an integer format, so the first step is changing the date format.  
+
+## Converting Date Format 
+```{r}
+transactionData$DATE <- as.Date(transactionData$DATE, origin = "1899-12-30") 
+head(transactionData)
+```
+
+## Examining PROD_NAME
+```{r}
+transactionData %>% count(PROD_NAME)
+```
+
+There are 114 types of product but we are only interested in the potato chips, so we would like to keep only the data of potato ships and discard other by summarising the individual words in the product name.
+  
+```{r}
+productWords <- data.table(unlist(strsplit(unique(transactionData$PROD_NAME), " ")))
+setnames(productWords, "words")
+```
+
+## Removing digits
+```{r}
+productWords <- productWords[grepl("[[:digit:]]", words) == FALSE, ]
+```
+
+## Removing special characters
+```{r}
+productWords <- productWords[grepl("[[:punct:]]", words) == FALSE, ]
+```
+
+## Sorting by frequency 
+```{r}
+productWords[, .N, words][order(N, decreasing = TRUE)]
+```
+\newpage 
+## Remove the salsa product
+```{r}
+transactionData[, SALSA := grepl("salsa", tolower(PROD_NAME))]
+transactionData <- transactionData[SALSA == FALSE, ][, SALSA := NULL]
+```
+
+## Summarizing the data
+```{r}
+summary(transactionData)
+```
+
+There are no nulls in the columns but product quantity appears to have an outlier which case where 200 packets of chips are bought in one transaction.
+
+## Filter the dataset to find the outlier
+```{r}
+transactionData[PROD_QTY == 200, ]
+```
+
+There are two transactions where 200 packets of chips are bought in one transaction and both of these transactions were by the same customer.
+
+### Examining other transactions that customer made
+```{r}
+transactionData[LYLTY_CARD_NBR == 226000, ]
+```
+
+This customer has only had the two transactions over the year and is not an ordinary retail customer. The customer might be buying chips for commercial purposes instead. We'll remove this loyalty card number from further analysis.
+
+### Filter out the outlier
+```{r}
+transactionData <- transactionData[LYLTY_CARD_NBR != 226000, ]
+```
+
+### Re‐examine transaction data
+```{r}
+summary(transactionData)
+```
+
+Now, let's examine the number of transaction lines over time to find obvious data issues such as missing data.
+
+## Finding obvious data issue 
+### Counting the number of transactions by date
+```{r}
+transactionData[, .N, by = DATE]
+```
+
+There's only 364 rows, meaning only 364 dates which indicates a missing date. Next, I will create a sequence of dates from 1 Jul 2018 to 30 Jun 2019 and use this to create a chart of number of transactions over time to find the missing date.
+\newpage
+
+### Filling the missing day  
+Creating a sequence of dates and join this the count of transactions by date to fill in the missing day
+```{r}
+allDates <- data.table(seq(as.Date("2018/07/01"), as.Date("2019/06/30"), by = "day"))
+setnames(allDates, "DATE")
+transactions_by_day <- merge(allDates, transactionData[, .N, by = DATE], all.x = TRUE)
+```
+
+### Setting plot themes to format graphs
+```{r}
+theme_set(theme_bw())
+theme_update(plot.title = element_text(hjust = 0.5))
+```
+
+### Ploting transactions over time
+```{r}
+ggplot(transactions_by_day, aes(x = DATE, y = N)) +
+ geom_line(col = "red") +
+ labs(x = "Day", y = "Number of transactions", title = "Transactions over time") +
+ scale_x_date(breaks = "1 month") +
+ theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+```
+
+We can see that there is an increase in purchases in December and a break in late December. Let's zoom in on this.
+\newpage
+
+### Filtering to December and look at individual days
+```{r}
+ggplot(transactions_by_day[month(DATE)==12, ], aes(x = DATE, y = N)) +
+ geom_line(col = "blue") +
+ labs(x = "Day", y = "Number of transactions", title = "Transactions over time") +
+ scale_x_date(breaks = "1 day") +
+ theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+```
+
+We can see that the increase in sales occurs in the lead-up to Christmas and that there are zero sales on Christmas day itself. This is due to shops being closed on Christmas day.
+
+Now, the data no longer has outliers and any other missing value. So we can move on to creating other features. I will start with pack size from PROD_NAME.  
+
+## Examining pack size
+```{r}
+transactionData[, PACK_SIZE := parse_number(PROD_NAME)]
+transactionData[, .N, PACK_SIZE][order(PACK_SIZE)]
+```
+
+The largest size is 380g and the smallest size is 70g - seems sensible. 
+
+Next, we will plot a histogram of PACK_SIZE since we know that it's a categorical variable and not a continuous variable even though it's numeric.
+
+### Ploting Histogram of PACK_SIZE
+```{r}
+options(scipen = 999)
+hist(transactionData$PACK_SIZE,
+     col = "lightblue",
+     main = "Size of Packages Histogram",
+     xlab = "Pack Size",
+     ylab = "Number of Purchaese")
+```
+
+The histogram looks reasonable. We found that the packs of size 150-200 was purchased the most.
+
+## Brand
+### To creating BRAND, we will use the first word in PROD_NAME to work out the brand name.
+```{r}
+transactionData[, BRAND := word(transactionData[, PROD_NAME], 1)]
+```
+
+Some of the brand names look like they are of the same brands - such as RED and RRD, which are both Red Rock Deli chips. Let's combine these together.
+
+### Checking brands
+```{r}
+transactionData[, .N, by = BRAND][order(-N)]
+```
+
+### Cleaning BRAND 
+```{r}
+transactionData[toupper(BRAND) == "RED", BRAND := "RRD"]
+transactionData[BRAND == "Dorito", BRAND := "Doritos"]
+transactionData[BRAND == "Smith", BRAND := "Smiths"]
+transactionData[BRAND == "WW", BRAND := "Woolworths"]
+transactionData[BRAND == "Grain", BRAND := "GrnWves"]
+transactionData[BRAND == "Snbts", BRAND := "Sunbites"]
+transactionData[BRAND == "Infzns", BRAND := "Infuzions"]
+transactionData[BRAND == "NCC", BRAND := "Natural"]
+```
+
+### Rechecking brands
+```{r}
+transactionData[, .N, by = BRAND][order(-N)]
+```
+
+Finally, we have 20 different brands since 8 of our rows that had similar brands have been merged.
+
+# Examining customer data
+```{r}
+summary(customerData)
+```
+
+We can see that the loyalty card number is a numeric vector while lifestage and premium_customer are character vectors. Next, I will join the transaction and customer data sets together.
+
+## Merge data sets
+```{r}
+data <- merge(transactionData, customerData, all.x = TRUE)
+```
+
+As the number of rows in data is the same as that of transactionData, we can be sure that no duplicates were created. This is because we created data by setting all.x = TRUE (in other words, a left join) which means take all the rows in transactionData and find rows with matching values in shared columns and then joining the details in these rows to the x or the first mentioned table.
+
+## checking for nulls
+```{r}
+colSums(is.na(data))
+```
+
+There are no nulls. So all our customers in transaction data has been accounted for in the customer dataset.
+
+## Writing data as a csv
+```{r}
+fwrite(data, paste0(filePath, "QVI_data.csv"))
+```
+
+# Data analysis on customer segment
+## 1.Total Sales by LIFESTAGE and PREMIUM_CUSTOMER
+```{r}
+total_sales <- data %>% 
+  group_by(LIFESTAGE, PREMIUM_CUSTOMER) %>%
+  summarise(SALSE = sum(TOT_SALES), .groups = "keep")
+total_sales
+```
+
+### Plot for salse
+```{r}
+ggplot(total_sales, aes(LIFESTAGE, SALSE, fill=PREMIUM_CUSTOMER)) +
+  geom_bar(stat="identity", position=position_dodge()) + 
+	theme(axis.text.x = element_text(angle = 90)) + 
+  labs(title="Total Sales by Lifestage and Premium customer") +
+	scale_fill_brewer(palette = "Set2")
+```
+
+Sales are coming mainly from Budget - older families, Mainstream - young singles/couples, and Mainstream - retirees
+
+## 2.Number of customers by LIFESTAGE and PREMIUM_CUSTOMER
+```{r}
+customer <- data %>% 
+  group_by(LIFESTAGE, PREMIUM_CUSTOMER) %>%
+  summarise(CUSTOMER = uniqueN(LYLTY_CARD_NBR), .groups = "keep")
+customer
+```
+
+## Plot for number of customers 
+```{r}
+ggplot(customer, aes(LIFESTAGE, CUSTOMER, fill=PREMIUM_CUSTOMER)) +
+  geom_bar(stat="identity", position=position_dodge()) + 
+	theme(axis.text.x = element_text(angle = 90)) + 
+  labs(title="Number of Customers by Lifestage and Premium customer") + 
+	scale_fill_brewer(palette = "Set2")
+```
+
+There are more Mainstream - young singles/couples and Mainstream - retirees who buy chips. This contributes to there being more sales to these customer segments but this is not a major driver for the Budget - Older families segment.
+
+Higher sales may also be driven by more units of chips being bought per customer. Let's have a look at average number of units per customer by LIFESTAGE and PREMIUM_CUSTOMER.
+
+## 3.Average number of units per customer by LIFESTAGE and PREMIUM_CUSTOMER
+```{r}
+avg_unit <- data %>% 
+  group_by(LIFESTAGE, PREMIUM_CUSTOMER) %>%
+  summarise(AVERAGE_UNIT = sum(PROD_QTY)/uniqueN(LYLTY_CARD_NBR), .groups = "keep")
+avg_unit
+```
+
+### Plot for average number of units per customer
+```{r}
+ggplot(avg_unit, aes(LIFESTAGE, AVERAGE_UNIT, fill=PREMIUM_CUSTOMER)) +
+  geom_bar(stat="identity", position=position_dodge()) + 
+	theme(axis.text.x = element_text(angle = 90)) + 
+  labs(title="Units per customer by Lifestage and Premium customer") +
+	scale_fill_brewer(palette = "Set2")
+```
+
+Older families and young families in general buy more chips per customer.
+
+Let's also investigate the average price per unit chips bought for each customer
+segment as this is also a driver of total sales.
+
+## 4.Average price per unit by LIFESTAGE and PREMIUM_CUSTOMER
+```{r}
+avg_price <- data %>% 
+  group_by(LIFESTAGE, PREMIUM_CUSTOMER) %>%
+  summarise(AVERAGE_PRICE = sum(TOT_SALES)/sum(PROD_QTY), .groups = "keep")
+avg_price
+```
+
+### Plot for average price per unit 
+```{r}
+ggplot(avg_price, aes(LIFESTAGE, AVERAGE_PRICE, fill=PREMIUM_CUSTOMER)) +
+  geom_bar(stat="identity", position=position_dodge()) + 
+	theme(axis.text.x = element_text(angle = 90)) + 
+  labs(title="Price per units by Lifestage and Premium customer") +
+	scale_fill_brewer(palette = "Set2")
+```
+
+Mainstream midage and young singles and couples are more willing to pay more per packet of chips compared to their budget and premium counterparts. This may be due to premium shoppers being more likely to buy healthy snacks and when they buy chips, this is mainly for entertainment purposes rather than their own consumption. This is also supported by there being fewer premium midage and young singles and couples buying chips compared to their mainstream counterparts.
+
+# Conclusion
+The data reveals valuable insights into customer segments, preferred brands, pack sizes, and spending trends. 
+
+- The purchasers of chips are coming mainly from Budget - older families, Mainstream - young singles/couples, and Mainstream - retirees shoppers. Among these groups, Mainstream - young singles/couples and retirees shoppers stand out for their high chip purchases due to their highest population. 
+
+- Kettle chips suggest an opportunity to capitalize on this by enhancing product visibility to attract more customers from this segment. 
+
+- The consistent preference for the 175-gram chip size followed by the 150-gram size across all customer segments indicates a strong market demand for these particular sizes. 
+
+- Sales peak just before Christmas, indicating a significant opportunity for increased revenue during this period. It's crucial to ensure sufficient stock levels to meet the heightened demand before Christmas, optimizing sales potential during this critical period.
+
+
+
+
+
