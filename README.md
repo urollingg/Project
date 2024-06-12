@@ -1,4 +1,6 @@
 # Portfolio
+Hello! I'm Sarita Suthhisaksri, passionate about data analysis. Although I'm new to the professional realm, I've been dedicatedly honing my analytics skills. My commitment to learning drives me to extract insights from complex datasets, turning them into actionable strategies. With a proactive mindset, I swiftly adapt to new environments and challenges. I'm enthusiastic about launching my career in data analysis, contributing to impactful projects, and embracing continuous growth.
+
 **Retail Strategy and Analytics - Forage Quantium Data Analytics Virtual Experience Program** / 
 **Tools: R(tidyverse, ggplot), Power BI**
 Analyzing customers' purchasing behaviors and the performance of trial stores aims to provide insights into customer preferences to the client and make a recommendation regarding the trial's success. The primary tools for this analysis are R and Power BI. These tools are used for data preparation, analyzing data to identify trends and inconsistencies, developing metrics and examining sales drivers to gain insights into overall sales performance, preparing a client report, and creating meaningful visualizations.
