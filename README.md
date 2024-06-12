@@ -1,5 +1,5 @@
 # Portfolio
-**Retail Strategy and Analytics** - Forage Quantium Data Analytics Virtual Experience Program 
+**Retail Strategy and Analytics - Forage Quantium Data Analytics Virtual Experience Program** / 
 **Tools: R(tidyverse, ggplot), Power BI**
 Analyzing customers' purchasing behaviors and the performance of trial stores aims to provide insights into customer preferences to the client and make a recommendation regarding the trial's success. The primary tools for this analysis are R and Power BI. These tools are used for data preparation, analyzing data to identify trends and inconsistencies, developing metrics and examining sales drivers to gain insights into overall sales performance, preparing a client report, and creating meaningful visualizations.
            
